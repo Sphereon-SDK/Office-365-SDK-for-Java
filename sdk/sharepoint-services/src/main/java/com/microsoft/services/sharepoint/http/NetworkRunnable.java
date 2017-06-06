@@ -7,11 +7,13 @@ package com.microsoft.services.sharepoint.http;
 
 import com.google.common.util.concurrent.SettableFuture;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
 /**
@@ -25,6 +27,7 @@ class NetworkRunnable implements Runnable {
     SettableFuture<Response> mFuture;
     final Object mCloseLock = new Object();
 
+
     /**
      * Initializes the network runnable
      *
@@ -35,6 +38,7 @@ class NetworkRunnable implements Runnable {
         mRequest = request;
         mFuture = future;
     }
+
 
     @Override
     public void run() {
@@ -53,16 +57,26 @@ class NetworkRunnable implements Runnable {
                     responseCode = mConnection.getResponseCode();
 
                     if (responseCode >= 400) {
-                        mResponseStream = mConnection.getErrorStream();
+                        this.mResponseStream = this.mConnection.getErrorStream();
+                        if (this.mResponseStream == null) {
+                            this.mResponseStream = this.mConnection.getInputStream();
+                        }
+                        if (this.mResponseStream == null) {
+                            this.mResponseStream = new ByteArrayInputStream(("HTTP error" + responseCode).getBytes(StandardCharsets.UTF_8));
+                        }
+
                     } else {
-                        mResponseStream = mConnection.getInputStream();
+                        this.mResponseStream = this.mConnection.getInputStream();
                     }
                 }
             }
 
-            if (mResponseStream != null && !mFuture.isCancelled()) {
-                mFuture.set(new StreamResponse(mResponseStream, responseCode,
-                        mConnection.getHeaderFields()));
+            if (!mFuture.isCancelled()) {
+                if (mResponseStream != null) {
+                    mFuture.set(new StreamResponse(mResponseStream, responseCode, mConnection.getHeaderFields()));
+                } else {
+                    mFuture.set(null);
+                }
             }
         } catch (Throwable e) {
             if (!mFuture.isCancelled()) {
@@ -77,6 +91,7 @@ class NetworkRunnable implements Runnable {
         }
 
     }
+
 
     /**
      * Closes the stream and connection, if possible
@@ -95,6 +110,7 @@ class NetworkRunnable implements Runnable {
             }
         }
     }
+
 
     /**
      * Creates an HttpURLConnection
