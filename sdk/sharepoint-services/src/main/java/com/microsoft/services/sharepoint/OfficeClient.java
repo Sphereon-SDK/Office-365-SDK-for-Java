@@ -34,50 +34,50 @@ public class OfficeClient {
      */
     Logger mLogger;
 
+
     /**
      * Instantiates a new Office client.
      *
      * @param credentials the credentials
      */
     public OfficeClient(Credentials credentials) {
-		this(credentials, null);
-	}
+        this(credentials, null);
+    }
+
 
     /**
      * Instantiates a new Office client.
      *
      * @param credentials the credentials
-     * @param logger the logger
+     * @param logger      the logger
      */
     public OfficeClient(Credentials credentials, Logger logger) {
-		if (credentials == null) {
-			throw new IllegalArgumentException("credentials must not be null");
-		}
+        if (logger == null) {
+            // add an empty logger
+            mLogger = new Logger() {
 
-		if (logger == null) {
-			// add an empty logger
-			mLogger = new Logger() {
+                @Override
+                public void log(String message, LogLevel level) {
+                }
+            };
+        } else {
+            mLogger = logger;
+        }
 
-				@Override
-				public void log(String message, LogLevel level) {
-				}
-			};
-		} else {
-			mLogger = logger;
-		}
+        mCredentials = credentials;
+    }
 
-		mCredentials = credentials;
-	}
 
     /**
      * Log void.
      *
      * @param message the message
-     * @param level the level
+     * @param level   the level
      */
     protected void log(String message, LogLevel level) {
-		getLogger().log(message, level);
-	}
+        getLogger().log(message, level);
+    }
+
 
     /**
      * Log void.
@@ -85,13 +85,14 @@ public class OfficeClient {
      * @param error the error
      */
     protected void log(Throwable error) {
-		StringWriter sw = new StringWriter();
-		PrintWriter pw = new PrintWriter(sw);
-		error.printStackTrace(pw);
-		String stackTrace = sw.toString();
+        StringWriter sw = new StringWriter();
+        PrintWriter pw = new PrintWriter(sw);
+        error.printStackTrace(pw);
+        String stackTrace = sw.toString();
 
-		getLogger().log(error.toString() + "\nStack Trace: " + stackTrace, LogLevel.Critical);
-	}
+        getLogger().log(error.toString() + "\nStack Trace: " + stackTrace, LogLevel.Critical);
+    }
+
 
     /**
      * Gets logger.
@@ -99,8 +100,9 @@ public class OfficeClient {
      * @return the logger
      */
     protected Logger getLogger() {
-		return mLogger;
-	}
+        return mLogger;
+    }
+
 
     /**
      * Gets credentials.
@@ -108,8 +110,8 @@ public class OfficeClient {
      * @return the credentials
      */
     protected Credentials getCredentials() {
-		return mCredentials;
-	}
+        return mCredentials;
+    }
 
 
     public void updateCredentials(Credentials credentials) {
@@ -124,145 +126,153 @@ public class OfficeClient {
      * @return the string
      */
     protected String generateODataQueryString(Query query) {
-		StringBuilder sb = new StringBuilder();
-		if (query != null) {
-			query.ensureIdProperty();
-			sb.append("$filter=");
-			sb.append(queryEncode(query.toString()));
+        StringBuilder sb = new StringBuilder();
+        if (query != null) {
+            query.ensureIdProperty();
+            sb.append("$filter=");
+            sb.append(queryEncode(query.toString()));
 
-			String rowSetModifiers = query.getRowSetModifiers().trim();
-			if (!rowSetModifiers.equals("")) {
-				if (!rowSetModifiers.startsWith("&")) {
-					sb.append("&");
-				}
-				sb.append(rowSetModifiers);
-			}
-		}
+            String rowSetModifiers = query.getRowSetModifiers().trim();
+            if (!rowSetModifiers.equals("")) {
+                if (!rowSetModifiers.startsWith("&")) {
+                    sb.append("&");
+                }
+                sb.append(rowSetModifiers);
+            }
+        }
 
-		return sb.toString();
-	}
+        return sb.toString();
+    }
+
 
     /**
      * Execute request.
      *
-     * @param url the url
+     * @param url    the url
      * @param method the method
      * @return the listenable future
      */
     protected ListenableFuture<byte[]> executeRequest(String url, String method) {
-		return executeRequest(url, method, null, null);
-	}
+        return executeRequest(url, method, null, null);
+    }
+
 
     /**
      * Execute request.
      *
-     * @param url the url
-     * @param method the method
+     * @param url     the url
+     * @param method  the method
      * @param headers the headers
      * @param payload the payload
      * @return the listenable future
      */
     protected ListenableFuture<byte[]> executeRequest(String url, String method, Map<String, String> headers,
-			byte[] payload) {
-		HttpConnection connection = Platform.createHttpConnection();
+                                                      byte[] payload) {
+        HttpConnection connection = Platform.createHttpConnection();
 
-		Request request = new Request(method);
+        Request request = new Request(method);
 
-		if (headers != null) {
-			for (String key : headers.keySet()) {
-				Object value = headers.get(key);
-				if(value != null)
-					request.addHeader(key, "" + value);
-			}
-		}
+        if (headers != null) {
+            for (String key : headers.keySet()) {
+                Object value = headers.get(key);
+                if (value != null) {
+                    request.addHeader(key, "" + value);
+                }
+            }
+        }
 
-		request.setUrl(url);
-		request.setContent(payload);
-		prepareRequest(request);
+        request.setUrl(url);
+        request.setContent(payload);
+        prepareRequest(request);
 
-		log("Generate request for " + url, LogLevel.Verbose);
-		request.log(getLogger());
+        log("Generate request for " + url, LogLevel.Verbose);
+        request.log(getLogger());
 
-		final SettableFuture<byte[]> result = SettableFuture.create();
-		final ListenableFuture<Response> future = connection.execute(request);
+        final SettableFuture<byte[]> result = SettableFuture.create();
+        final ListenableFuture<Response> future = connection.execute(request);
 
-		Futures.addCallback(future, new FutureCallback<Response>() {
-			@Override
-			public void onFailure(Throwable t) {
-				result.setException(t);
-			}
+        Futures.addCallback(future, new FutureCallback<Response>() {
+            @Override
+            public void onFailure(Throwable t) {
+                result.setException(t);
+            }
 
-			@Override
-			public void onSuccess(Response response) {
-				try {
-					int statusCode = response.getStatus();
-					if (isValidStatus(statusCode)) {
-						byte[] responseContentBytes = response.readAllBytes();
-						result.set(responseContentBytes);
-					} else {
-						result.setException(new Exception("Invalid status code " + statusCode + ": "
-								+ response.readToEnd()));
-					}
-				} catch (IOException e) {
-					log(e);
-					result.setException(e);
-				}
-			}
-		});
-		return result;
-	}
+
+            @Override
+            public void onSuccess(Response response) {
+                try {
+                    int statusCode = response.getStatus();
+                    if (isValidStatus(statusCode)) {
+                        byte[] responseContentBytes = response.readAllBytes();
+                        result.set(responseContentBytes);
+                    } else {
+                        result.setException(new Exception("Invalid status code " + statusCode + ": "
+                                + response.readToEnd()));
+                    }
+                } catch (IOException e) {
+                    log(e);
+                    result.setException(e);
+                }
+            }
+        });
+        return result;
+    }
+
 
     /**
      * Execute request json.
      *
-     * @param url the url
+     * @param url    the url
      * @param method the method
      * @return the listenable future
      */
     protected ListenableFuture<JSONObject> executeRequestJson(String url, String method) {
-		return executeRequestJson(url, method, null, null);
-	}
+        return executeRequestJson(url, method, null, null);
+    }
+
 
     /**
      * Execute request json.
      *
-     * @param url the url
-     * @param method the method
+     * @param url     the url
+     * @param method  the method
      * @param headers the headers
      * @param payload the payload
      * @return the listenable future
      */
     protected ListenableFuture<JSONObject> executeRequestJson(String url, String method, Map<String, String> headers,
-			byte[] payload) {
+                                                              byte[] payload) {
 
-		final SettableFuture<JSONObject> result = SettableFuture.create();
-		final ListenableFuture<byte[]> request = executeRequest(url, method, headers, payload);
+        final SettableFuture<JSONObject> result = SettableFuture.create();
+        final ListenableFuture<byte[]> request = executeRequest(url, method, headers, payload);
 
-		Futures.addCallback(request, new FutureCallback<byte[]>() {
-			@Override
-			public void onFailure(Throwable t) {
-				result.setException(t);
-			}
+        Futures.addCallback(request, new FutureCallback<byte[]>() {
+            @Override
+            public void onFailure(Throwable t) {
+                result.setException(t);
+            }
 
-			@Override
-			public void onSuccess(byte[] b) {
-				String string;
-				try {
-					string = new String(b, Constants.UTF8_NAME);
-					if (string.length() == 0) {
-						result.set(null);
-					} else {
-						JSONObject json = new JSONObject(string);
-						result.set(json);
-					}
-				} catch (Throwable t) {
-					t.printStackTrace();
-					result.setException(t);
-				}
-			}
-		});
-		return result;
-	}
+
+            @Override
+            public void onSuccess(byte[] b) {
+                String string;
+                try {
+                    string = new String(b, Constants.UTF8_NAME);
+                    if (string.length() == 0) {
+                        result.set(null);
+                    } else {
+                        JSONObject json = new JSONObject(string);
+                        result.set(json);
+                    }
+                } catch (Throwable t) {
+                    t.printStackTrace();
+                    result.setException(t);
+                }
+            }
+        });
+        return result;
+    }
+
 
     /**
      * Gets discovery info.
@@ -270,8 +280,9 @@ public class OfficeClient {
      * @return the discovery info
      */
     public ListenableFuture<List<DiscoveryInformation>> getDiscoveryInfo() {
-		return getDiscoveryInfo("https://api.office.com/discovery/me/services");
-	}
+        return getDiscoveryInfo("https://api.office.com/discovery/me/services");
+    }
+
 
     /**
      * Gets discovery info.
@@ -280,29 +291,31 @@ public class OfficeClient {
      * @return the discovery info
      */
     public ListenableFuture<List<DiscoveryInformation>> getDiscoveryInfo(String discoveryEndpoint) {
-		final SettableFuture<List<DiscoveryInformation>> result = SettableFuture.create();
-		final ListenableFuture<JSONObject> request = executeRequestJson(discoveryEndpoint, "GET");
+        final SettableFuture<List<DiscoveryInformation>> result = SettableFuture.create();
+        final ListenableFuture<JSONObject> request = executeRequestJson(discoveryEndpoint, "GET");
 
-		Futures.addCallback(request, new FutureCallback<JSONObject>() {
-			@Override
-			public void onFailure(Throwable t) {
-				result.setException(t);
-			}
+        Futures.addCallback(request, new FutureCallback<JSONObject>() {
+            @Override
+            public void onFailure(Throwable t) {
+                result.setException(t);
+            }
 
-			@Override
-			public void onSuccess(JSONObject json) {
-				List<DiscoveryInformation> discoveryInfo;
-				try {
-					discoveryInfo = DiscoveryInformation.listFromJson(json, DiscoveryInformation.class);
-					result.set(discoveryInfo);
-				} catch (Throwable e) {
-					log(e.getMessage(), LogLevel.Critical);
-					result.setException(e);
-				}
-			}
-		});
-		return result;
-	}
+
+            @Override
+            public void onSuccess(JSONObject json) {
+                List<DiscoveryInformation> discoveryInfo;
+                try {
+                    discoveryInfo = DiscoveryInformation.listFromJson(json, DiscoveryInformation.class);
+                    result.set(discoveryInfo);
+                } catch (Throwable e) {
+                    log(e.getMessage(), LogLevel.Critical);
+                    result.setException(e);
+                }
+            }
+        });
+        return result;
+    }
+
 
     /**
      * Prepare request.
@@ -310,16 +323,19 @@ public class OfficeClient {
      * @param request the request
      */
     protected void prepareRequest(Request request) {
-		request.addHeader("Accept", "application/json;odata=verbose");
-		request.addHeader("X-ClientService-ClientTag", "SDK-JAVA");
-		
-		int contentLength = 0;
-		if (request.getContent() != null) {
-			contentLength = request.getContent().length;
-		}
-		request.addHeader("Content-Length", String.valueOf(contentLength));
-		mCredentials.prepareRequest(request);
-	}
+        request.addHeader("Accept", "application/json;odata=verbose");
+        request.addHeader("X-ClientService-ClientTag", "SDK-JAVA");
+
+        int contentLength = 0;
+        if (request.getContent() != null) {
+            contentLength = request.getContent().length;
+        }
+        request.addHeader("Content-Length", String.valueOf(contentLength));
+        if (mCredentials != null) {
+            mCredentials.prepareRequest(request);
+        }
+    }
+
 
     /**
      * Is valid status.
@@ -328,8 +344,9 @@ public class OfficeClient {
      * @return the boolean
      */
     protected static boolean isValidStatus(int status) {
-		return status >= 200 && status <= 299;
-	}
+        return status >= 200 && status <= 299;
+    }
+
 
     /**
      * Query encode.
@@ -339,15 +356,16 @@ public class OfficeClient {
      */
     protected String queryEncode(String query) {
 
-		String encoded;
+        String encoded;
 
-		try {
-			encoded = query.replaceAll("\\s", "+");
-		} catch (Exception e) {
-			encoded = query;
-		}
-		return encoded;
-	}
+        try {
+            encoded = query.replaceAll("\\s", "+");
+        } catch (Exception e) {
+            encoded = query;
+        }
+        return encoded;
+    }
+
 
     /**
      * Url encode.
@@ -356,17 +374,18 @@ public class OfficeClient {
      * @return the string
      */
     protected String urlEncode(String str) {
-		String encoded;
-		try {
-			encoded = URLEncoder.encode(str, Constants.UTF8_NAME);
-		} catch (UnsupportedEncodingException e) {
-			encoded = str;
-		}
+        String encoded;
+        try {
+            encoded = URLEncoder.encode(str, Constants.UTF8_NAME);
+        } catch (UnsupportedEncodingException e) {
+            encoded = str;
+        }
 
-		encoded = encoded.replaceAll("\\+", "%20").replaceAll("\\%21", "!").replaceAll("\\%27", "'")
-				.replaceAll("\\%28", "(").replaceAll("\\%29", ")").replaceAll("\\%7E", "~");
-		return encoded;
-	}
+        encoded = encoded.replaceAll("\\+", "%20").replaceAll("\\%21", "!").replaceAll("\\%27", "'")
+                .replaceAll("\\%28", "(").replaceAll("\\%29", ")").replaceAll("\\%7E", "~");
+        return encoded;
+    }
+
 
     /**
      * UUI dto string.
@@ -375,6 +394,6 @@ public class OfficeClient {
      * @return the string
      */
     protected String UUIDtoString(UUID id) {
-		return id.toString().replace("-", "");
-	}
+        return id.toString().replace("-", "");
+    }
 }
