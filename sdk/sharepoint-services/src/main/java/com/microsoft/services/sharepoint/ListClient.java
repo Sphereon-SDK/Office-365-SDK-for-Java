@@ -5,17 +5,16 @@
  ******************************************************************************/
 package com.microsoft.services.sharepoint;
 
-import java.io.UnsupportedEncodingException;
-import java.util.*;
-
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.io.UnsupportedEncodingException;
+import java.util.*;
 
 /**
  * The Class ListClient.
@@ -25,25 +24,25 @@ public class ListClient extends SharePointClient {
     /**
      * Instantiates a new sharepoint lists client.
      *
-     * @param serverUrl the server url
+     * @param serverUrl       the server url
      * @param siteRelativeUrl the site relative url
-     * @param credentials the credentials
+     * @param credentials     the credentials
      */
-	public ListClient(String serverUrl, String siteRelativeUrl, Credentials credentials) {
-		super(serverUrl, siteRelativeUrl, credentials);
-	}
+    public ListClient(String serverUrl, String siteRelativeUrl, Credentials credentials) {
+        super(serverUrl, siteRelativeUrl, credentials);
+    }
 
     /**
      * Instantiates a new sharepoint lists client.
      *
-     * @param serverUrl the server url
+     * @param serverUrl       the server url
      * @param siteRelativeUrl the site relative url
-     * @param credentials the credentials
-     * @param logger the logger
+     * @param credentials     the credentials
+     * @param logger          the logger
      */
-	public ListClient(String serverUrl, String siteRelativeUrl, Credentials credentials, Logger logger) {
-		super(serverUrl, siteRelativeUrl, credentials, logger);
-	}
+    public ListClient(String serverUrl, String siteRelativeUrl, Credentials credentials, Logger logger) {
+        super(serverUrl, siteRelativeUrl, credentials, logger);
+    }
 
 
     /**
@@ -53,33 +52,33 @@ public class ListClient extends SharePointClient {
      * @return the lists
      */
     public ListenableFuture<List<SPList>> getLists(Query query) {
-		final SettableFuture<List<SPList>> result = SettableFuture.create();
+        final SettableFuture<List<SPList>> result = SettableFuture.create();
 
-		String queryOData = generateODataQueryString(query);
-		String getListsUrl = getSiteUrl() + "_api/web/lists/?" + queryEncode(queryOData);
+        String queryOData = generateODataQueryString(query);
+        String getListsUrl = getSiteUrl() + "_api/web/lists/?" + queryEncode(queryOData);
 
-		ListenableFuture<JSONObject> request = executeRequestJson(getListsUrl, "GET");
+        ListenableFuture<JSONObject> request = executeRequestJson(getListsUrl, "GET");
 
-		Futures.addCallback(request, new FutureCallback<JSONObject>() {
-			@Override
-			public void onFailure(Throwable t) {
-				result.setException(t);
-			}
+        Futures.addCallback(request, new FutureCallback<JSONObject>() {
+            @Override
+            public void onFailure(Throwable t) {
+                result.setException(t);
+            }
 
-			@Override
-			public void onSuccess(JSONObject json) {
-				try {
-					List<SPList> list = SPList.listFromJson(json);
-					result.set(list);
-				} catch (JSONException e) {
-					log(e);
-					result.setException(e);
-				}
-			}
-		});
+            @Override
+            public void onSuccess(JSONObject json) {
+                try {
+                    List<SPList> list = SPList.listFromJson(json);
+                    result.set(list);
+                } catch (JSONException e) {
+                    log(e);
+                    result.setException(e);
+                }
+            }
+        });
 
-		return result;
-	}
+        return result;
+    }
 
     /**
      * Gets the list.
@@ -87,309 +86,341 @@ public class ListClient extends SharePointClient {
      * @param listName the list name
      * @return the list
      */
-	public ListenableFuture<SPList> getList(String listName) {
-		final SettableFuture<SPList> result = SettableFuture.create();
-		String getListUrl = getSiteUrl() + "_api/web/lists/GetByTitle('%s')";
-		getListUrl = String.format(getListUrl, urlEncode(listName));
-		ListenableFuture<JSONObject> request = executeRequestJson(getListUrl, "GET");
+    public ListenableFuture<SPList> getList(String listName) {
+        final SettableFuture<SPList> result = SettableFuture.create();
+        String getListUrl = getSiteUrl() + "_api/web/lists/GetByTitle('%s')";
+        getListUrl = String.format(getListUrl, urlEncode(listName));
+        ListenableFuture<JSONObject> request = executeRequestJson(getListUrl, "GET");
 
-		Futures.addCallback(request, new FutureCallback<JSONObject>() {
-			@Override
-			public void onFailure(Throwable t) {
-				result.setException(t);
-			}
+        Futures.addCallback(request, new FutureCallback<JSONObject>() {
+            @Override
+            public void onFailure(Throwable t) {
+                result.setException(t);
+            }
 
-			@Override
-			public void onSuccess(JSONObject json) {
-				SPList list = new SPList();
-				list.loadFromJson(json, true);
-				result.set(list);
-			}
-		});
+            @Override
+            public void onSuccess(JSONObject json) {
+                SPList list = new SPList();
+                list.loadFromJson(json, true);
+                result.set(list);
+            }
+        });
 
-		return result;
-	}
+        return result;
+    }
+
+    /**
+     * Gets the content types of a Site
+     *
+     * @return the content types
+     */
+    public ListenableFuture<List<SPContentType>> getContentTypesOfSite() {
+        final SettableFuture<List<SPContentType>> result = SettableFuture.create();
+        String getContentTypesUrl = getSiteUrl() + "_api/web/contenttypes";
+        ListenableFuture<JSONObject> request = executeRequestJson(getContentTypesUrl, "GET");
+
+        Futures.addCallback(request, new FutureCallback<JSONObject>() {
+            @Override
+            public void onFailure(Throwable t) {
+                result.setException(t);
+            }
+
+            @Override
+            public void onSuccess(JSONObject json) {
+                try {
+                    List<SPContentType> list = SPContentType.listFromJson(json);
+                    result.set(list);
+                } catch (JSONException e) {
+                    log(e);
+                    result.setException(e);
+                }
+            }
+        });
+
+        return result;
+    }
+
 
     /**
      * Gets the list items.
      *
      * @param listName the list name
-     * @param query the query
+     * @param query    the query
      * @return the list items
      */
-	public ListenableFuture<List<SPListItem>> getListItems(String listName, Query query) {
-		final SettableFuture<List<SPListItem>> result = SettableFuture.create();
+    public ListenableFuture<List<SPListItem>> getListItems(String listName, Query query) {
+        final SettableFuture<List<SPListItem>> result = SettableFuture.create();
 
-		String listNamePart = String.format("_api/web/lists/GetByTitle('%s')/Items?", urlEncode(listName));
-		String getListUrl = getSiteUrl() + listNamePart + generateODataQueryString(query);
-		ListenableFuture<JSONObject> request = executeRequestJson(getListUrl, "GET");
+        String listNamePart = String.format("_api/web/lists/GetByTitle('%s')/Items?", urlEncode(listName));
+        String getListUrl = getSiteUrl() + listNamePart + generateODataQueryString(query);
+        ListenableFuture<JSONObject> request = executeRequestJson(getListUrl, "GET");
 
-		Futures.addCallback(request, new FutureCallback<JSONObject>() {
-			@Override
-			public void onFailure(Throwable t) {
-				result.setException(t);
-			}
+        Futures.addCallback(request, new FutureCallback<JSONObject>() {
+            @Override
+            public void onFailure(Throwable t) {
+                result.setException(t);
+            }
 
-			@Override
-			public void onSuccess(JSONObject json) {
-				try {
-					result.set(SPListItem.listFromJson(json));
-				} catch (JSONException e) {
-					log(e);
-					result.setException(e);
-				}
-			}
-		});
+            @Override
+            public void onSuccess(JSONObject json) {
+                try {
+                    result.set(SPListItem.listFromJson(json));
+                } catch (JSONException e) {
+                    log(e);
+                    result.setException(e);
+                }
+            }
+        });
 
-		return result;
-	}
+        return result;
+    }
 
-  /**
+    /**
      * Gets the list.
      *
      * @param listId the list name
      * @return the list
      */
-	public ListenableFuture<SPList> getList(UUID listId) {
-		final SettableFuture<SPList> result = SettableFuture.create();
-		String getListUrl = getSiteUrl() + "_api/web/lists(guid'%s')";
-		getListUrl = String.format(getListUrl, listId.toString());
-		ListenableFuture<JSONObject> request = executeRequestJson(getListUrl, "GET");
+    public ListenableFuture<SPList> getList(UUID listId) {
+        final SettableFuture<SPList> result = SettableFuture.create();
+        String getListUrl = getSiteUrl() + "_api/web/lists(guid'%s')";
+        getListUrl = String.format(getListUrl, listId.toString());
+        ListenableFuture<JSONObject> request = executeRequestJson(getListUrl, "GET");
 
-		Futures.addCallback(request, new FutureCallback<JSONObject>() {
-			@Override
-			public void onFailure(Throwable t) {
-				result.setException(t);
-			}
+        Futures.addCallback(request, new FutureCallback<JSONObject>() {
+            @Override
+            public void onFailure(Throwable t) {
+                result.setException(t);
+            }
 
-			@Override
-			public void onSuccess(JSONObject json) {
-				SPList list = new SPList();
-				list.loadFromJson(json, true);
-				result.set(list);
-			}
-		});
+            @Override
+            public void onSuccess(JSONObject json) {
+                SPList list = new SPList();
+                list.loadFromJson(json, true);
+                result.set(list);
+            }
+        });
 
-		return result;
-	}
+        return result;
+    }
 
     /**
      * Gets the list items.
      *
      * @param listId the list name
-     * @param query the query
+     * @param query  the query
      * @return the list items
      */
-	public ListenableFuture<List<SPListItem>> getListItems(UUID listId, Query query) {
-		final SettableFuture<List<SPListItem>> result = SettableFuture.create();
+    public ListenableFuture<List<SPListItem>> getListItems(UUID listId, Query query) {
+        final SettableFuture<List<SPListItem>> result = SettableFuture.create();
 
-		String listNamePart = String.format("_api/web/lists(guid'%s')/Items?", listId);
-		String getListUrl = getSiteUrl() + listNamePart + generateODataQueryString(query);
-		ListenableFuture<JSONObject> request = executeRequestJson(getListUrl, "GET");
+        String listNamePart = String.format("_api/web/lists(guid'%s')/Items?", listId);
+        String getListUrl = getSiteUrl() + listNamePart + generateODataQueryString(query);
+        ListenableFuture<JSONObject> request = executeRequestJson(getListUrl, "GET");
 
-		Futures.addCallback(request, new FutureCallback<JSONObject>() {
-			@Override
-			public void onFailure(Throwable t) {
-				result.setException(t);
-			}
+        Futures.addCallback(request, new FutureCallback<JSONObject>() {
+            @Override
+            public void onFailure(Throwable t) {
+                result.setException(t);
+            }
 
-			@Override
-			public void onSuccess(JSONObject json) {
-				try {
-					result.set(SPListItem.listFromJson(json));
-				} catch (JSONException e) {
-					log(e);
-					result.setException(e);
-				}
-			}
-		});
+            @Override
+            public void onSuccess(JSONObject json) {
+                try {
+                    result.set(SPListItem.listFromJson(json));
+                } catch (JSONException e) {
+                    log(e);
+                    result.setException(e);
+                }
+            }
+        });
 
-		return result;
-	}
+        return result;
+    }
 
     /**
      * Gets the list fields.
      *
      * @param listName the list name
-     * @param query the query
+     * @param query    the query
      * @return the list fields
      */
-	public ListenableFuture<List<SPListField>> getListFields(String listName, Query query) {
-		final SettableFuture<List<SPListField>> result = SettableFuture.create();
+    public ListenableFuture<List<SPListField>> getListFields(String listName, Query query) {
+        final SettableFuture<List<SPListField>> result = SettableFuture.create();
 
-		String getListUrl = getSiteUrl() + "_api/web/lists/GetByTitle('%s')/Fields?" + generateODataQueryString(query);
-		getListUrl = String.format(getListUrl, urlEncode(listName));
-		ListenableFuture<JSONObject> request = executeRequestJson(getListUrl, "GET");
+        String getListUrl = getSiteUrl() + "_api/web/lists/GetByTitle('%s')/Fields?" + generateODataQueryString(query);
+        getListUrl = String.format(getListUrl, urlEncode(listName));
+        ListenableFuture<JSONObject> request = executeRequestJson(getListUrl, "GET");
 
-		Futures.addCallback(request, new FutureCallback<JSONObject>() {
-			@Override
-			public void onFailure(Throwable t) {
-				result.setException(t);
-			}
+        Futures.addCallback(request, new FutureCallback<JSONObject>() {
+            @Override
+            public void onFailure(Throwable t) {
+                result.setException(t);
+            }
 
-			@Override
-			public void onSuccess(JSONObject json) {
-				try {
-					result.set(SPListField.listFromJson(json));
-				} catch (JSONException e) {
-					log(e);
-					result.setException(e);
-				}
-			}
-		});
+            @Override
+            public void onSuccess(JSONObject json) {
+                try {
+                    result.set(SPListField.listFromJson(json));
+                } catch (JSONException e) {
+                    log(e);
+                    result.setException(e);
+                }
+            }
+        });
 
-		return result;
-	}
+        return result;
+    }
 
     /**
      * Insert list item.
      *
      * @param listItem the list item
-     * @param list the list
+     * @param list     the list
      * @return the office future
      */
-	public ListenableFuture<Void> insertListItem(final SPListItem listItem, final SPList list) {
-		final SettableFuture<Void> result = SettableFuture.create();
+    public ListenableFuture<Void> insertListItem(final SPListItem listItem, final SPList list) {
+        final SettableFuture<Void> result = SettableFuture.create();
 
-		String getListUrl = getSiteUrl() + "_api/web/lists/GetByTitle('%s')/Items";
-		getListUrl = String.format(getListUrl, urlEncode(list.getTitle()));
+        String getListUrl = getSiteUrl() + "_api/web/lists/GetByTitle('%s')/Items";
+        getListUrl = String.format(getListUrl, urlEncode(list.getTitle()));
 
-		try {
-			JSONObject payload = new JSONObject();
-			JSONObject metadata = new JSONObject();
-			metadata.put("type", list.getListItemEntityTypeFullName());
-			payload.put("__metadata", metadata);
+        try {
+            JSONObject payload = new JSONObject();
+            JSONObject metadata = new JSONObject();
+            metadata.put("type", list.getListItemEntityTypeFullName());
+            payload.put("__metadata", metadata);
 
-			for (String key : listItem.getValues().keySet()) {
+            for (String key : listItem.getValues().keySet()) {
 
-				Object object = listItem.getValues().get(key);
-				// we assume you're trying to store a value on a linked
-				// sharepoint list
-				if (object instanceof JSONArray) {
-					JSONObject container = new JSONObject();
-					container.put("results", object);
-					payload.put(key + "Id", container);
-				} else {
-					payload.put(key, object);
-				}
-			}
+                Object object = listItem.getValues().get(key);
+                // we assume you're trying to store a value on a linked
+                // sharepoint list
+                if (object instanceof JSONArray) {
+                    JSONObject container = new JSONObject();
+                    container.put("results", object);
+                    payload.put(key + "Id", container);
+                } else {
+                    payload.put(key, object);
+                }
+            }
 
-			ListenableFuture<JSONObject> request = executeRequestJsonWithDigest(getListUrl, "POST", null,
-					getBytes(payload.toString()));
+            ListenableFuture<JSONObject> request = executeRequestJsonWithDigest(getListUrl, "POST", null,
+                    getBytes(payload.toString()));
 
-			Futures.addCallback(request, new FutureCallback<JSONObject>() {
-				@Override
-				public void onFailure(Throwable t) {
-					result.setException(t);
-				}
+            Futures.addCallback(request, new FutureCallback<JSONObject>() {
+                @Override
+                public void onFailure(Throwable t) {
+                    result.setException(t);
+                }
 
-				@Override
-				public void onSuccess(JSONObject json) {
-					result.set(null);
-				}
-			});
-		} catch (Throwable t) {
-			result.setException(t);
-		}
+                @Override
+                public void onSuccess(JSONObject json) {
+                    result.set(null);
+                }
+            });
+        } catch (Throwable t) {
+            result.setException(t);
+        }
 
-		return result;
-	}
+        return result;
+    }
 
     /**
      * Update list item.
      *
      * @param listItem the list item
-     * @param list the list
+     * @param list     the list
      * @return the office future
      */
-	public ListenableFuture<Void> updateListItem(final SPListItem listItem, final SPList list) {
-		final SettableFuture<Void> result = SettableFuture.create();
+    public ListenableFuture<Void> updateListItem(final SPListItem listItem, final SPList list) {
+        final SettableFuture<Void> result = SettableFuture.create();
 
-		String getListUrl = getSiteUrl() + "_api/web/lists(guid'%s')/items(" + listItem.getId() + ")";
-		getListUrl = String.format(getListUrl, list.getData("Id").toString());
+        String getListUrl = getSiteUrl() + "_api/web/lists(guid'%s')/items(" + listItem.getId() + ")";
+        getListUrl = String.format(getListUrl, list.getData("Id").toString());
 
-		try {
-			JSONObject payload = new JSONObject();
-			JSONObject metadata = new JSONObject();
-			metadata.put("type", list.getListItemEntityTypeFullName());
-			payload.put("__metadata", metadata);
+        try {
+            JSONObject payload = new JSONObject();
+            JSONObject metadata = new JSONObject();
+            metadata.put("type", list.getListItemEntityTypeFullName());
+            payload.put("__metadata", metadata);
 
-			for (String key : listItem.getValues().keySet()) {
-				Object object = listItem.getValues().get(key);
-				// we assume you're trying to store a value on a linked
-				// sharepoint list
-				if (object instanceof JSONArray) {
-					JSONObject container = new JSONObject();
-					container.put("results", object);
-					payload.put(key + "Id", container);
-				} else {
-					payload.put(key, object);
-				}
-			}
+            for (String key : listItem.getValues().keySet()) {
+                Object object = listItem.getValues().get(key);
+                // we assume you're trying to store a value on a linked
+                // sharepoint list
+                if (object instanceof JSONArray) {
+                    JSONObject container = new JSONObject();
+                    container.put("results", object);
+                    payload.put(key + "Id", container);
+                } else {
+                    payload.put(key, object);
+                }
+            }
 
-			Map<String, String> headers = new HashMap<String, String>();
-			headers.put("X-HTTP-Method", "MERGE");
-			headers.put("If-Match", "*");
+            Map<String, String> headers = new HashMap<String, String>();
+            headers.put("X-HTTP-Method", "MERGE");
+            headers.put("If-Match", "*");
 
-			ListenableFuture<JSONObject> request = executeRequestJsonWithDigest(getListUrl, "POST", headers,
-					getBytes(payload.toString()));
+            ListenableFuture<JSONObject> request = executeRequestJsonWithDigest(getListUrl, "POST", headers,
+                    getBytes(payload.toString()));
 
-			Futures.addCallback(request, new FutureCallback<JSONObject>() {
-				@Override
-				public void onFailure(Throwable t) {
-					result.setException(t);
-				}
+            Futures.addCallback(request, new FutureCallback<JSONObject>() {
+                @Override
+                public void onFailure(Throwable t) {
+                    result.setException(t);
+                }
 
-				@Override
-				public void onSuccess(JSONObject json) {
-					result.set(null);
-				}
-			});
-		} catch (JSONException e) {
-			result.setException(e);
-		}
-		return result;
-	}
+                @Override
+                public void onSuccess(JSONObject json) {
+                    result.set(null);
+                }
+            });
+        } catch (JSONException e) {
+            result.setException(e);
+        }
+        return result;
+    }
 
 
     /**
      * Delete list item.
      *
      * @param listIdthe list item
-     * @param listName the list name
+     * @param listName  the list name
      * @return the office future
      */
-	public ListenableFuture<Void> deleteListItem(final SPListItem listItem, final UUID listId) {
-		final SettableFuture<Void> result = SettableFuture.create();
+    public ListenableFuture<Void> deleteListItem(final SPListItem listItem, final UUID listId) {
+        final SettableFuture<Void> result = SettableFuture.create();
 
-		String getListUrl = getSiteUrl() + "_api/web/lists(guid'%s')/items(" + listItem.getId() + ")";
-		getListUrl = String.format(getListUrl, listId);
+        String getListUrl = getSiteUrl() + "_api/web/lists(guid'%s')/items(" + listItem.getId() + ")";
+        getListUrl = String.format(getListUrl, listId);
 
-		try {
-			Map<String, String> headers = new HashMap<String, String>();
-			headers.put("X-HTTP-Method", "DELETE");
-			headers.put("If-Match", "*");
+        try {
+            Map<String, String> headers = new HashMap<String, String>();
+            headers.put("X-HTTP-Method", "DELETE");
+            headers.put("If-Match", "*");
 
-			ListenableFuture<JSONObject> request = executeRequestJsonWithDigest(getListUrl, "POST", headers, null);
+            ListenableFuture<JSONObject> request = executeRequestJsonWithDigest(getListUrl, "POST", headers, null);
 
-			Futures.addCallback(request, new FutureCallback<JSONObject>() {
-				@Override
-				public void onFailure(Throwable t) {
-					result.setException(t);
-				}
+            Futures.addCallback(request, new FutureCallback<JSONObject>() {
+                @Override
+                public void onFailure(Throwable t) {
+                    result.setException(t);
+                }
 
-				@Override
-				public void onSuccess(JSONObject json) {
-					result.set(null);
-				}
-			});
+                @Override
+                public void onSuccess(JSONObject json) {
+                    result.set(null);
+                }
+            });
 
-		} catch (Throwable t) {
-			result.setException(t);
-		}
+        } catch (Throwable t) {
+            result.setException(t);
+        }
 
-		return result;
-	}
+        return result;
+    }
 
 
     /**
@@ -399,100 +430,102 @@ public class ListClient extends SharePointClient {
      * @return the columns from default view
      */
     public ListenableFuture<List<String>> getColumnsFromDefaultView(final String listName) {
-		final SettableFuture<List<String>> result = SettableFuture.create();
-		String getViewUrl = getSiteUrl()
-				+ String.format("_api/web/lists/GetByTitle('%s')/defaultView/viewfields", urlEncode(listName));
-		ListenableFuture<JSONObject> request = executeRequestJson(getViewUrl, "GET");
+        final SettableFuture<List<String>> result = SettableFuture.create();
+        String getViewUrl = getSiteUrl()
+                + String.format("_api/web/lists/GetByTitle('%s')/defaultView/viewfields", urlEncode(listName));
+        ListenableFuture<JSONObject> request = executeRequestJson(getViewUrl, "GET");
 
-		Futures.addCallback(request, new FutureCallback<JSONObject>() {
-			@Override
-			public void onFailure(Throwable t) {
-				result.setException(t);
-			}
+        Futures.addCallback(request, new FutureCallback<JSONObject>() {
+            @Override
+            public void onFailure(Throwable t) {
+                result.setException(t);
+            }
 
-			@Override
-			public void onSuccess(JSONObject json) {
-				try {
-					JSONObject container = json.getJSONObject("d");
-					JSONArray results = container.getJSONObject("Items").getJSONArray("results");
-					ArrayList<String> columnNames = new ArrayList<String>();
+            @Override
+            public void onSuccess(JSONObject json) {
+                try {
+                    JSONObject container = json.getJSONObject("d");
+                    JSONArray results = container.getJSONObject("Items").getJSONArray("results");
+                    ArrayList<String> columnNames = new ArrayList<String>();
 
-					for (int i = 0; i < results.length(); i++) {
-						columnNames.add(results.get(i).toString());
-					}
-					result.set(columnNames);
-				} catch (JSONException e) {
-					log(e);
-					result.setException(e);
-				}
-			}
-		});
-		return result;
-	}
-
-
-	/**
-	 * Get a list of sub-webs for the current site collection
-	 * @return
-	 */
-	public ListenableFuture<List<SPWeb>> getSubWebs() {
-		final SettableFuture<List<SPWeb>> result = SettableFuture.create();
-
-		String getListsUrl = getSiteUrl() + "_api/web/?$select=Webs&$expand=Webs";
-
-		ListenableFuture<JSONObject> request = executeRequestJson(getListsUrl, "GET");
-
-		Futures.addCallback(request, new FutureCallback<JSONObject>() {
-			@Override
-			public void onFailure(Throwable t) {
-				result.setException(t);
-			}
-
-			@Override
-			public void onSuccess(JSONObject json) {
-				try {
-					List<SPWeb> list = SPWeb.listFromJson(json);
-					result.set(list);
-				} catch (JSONException e) {
-					log(e);
-					result.setException(e);
-				}
-			}
-		});
-		return result;
-	}
+                    for (int i = 0; i < results.length(); i++) {
+                        columnNames.add(results.get(i).toString());
+                    }
+                    result.set(columnNames);
+                } catch (JSONException e) {
+                    log(e);
+                    result.setException(e);
+                }
+            }
+        });
+        return result;
+    }
 
 
     /**
-	 * Get root web for the current site collection
-	 * @return
-	 */
-	public ListenableFuture<SPWeb> getRootWeb() {
-		final SettableFuture<SPWeb> result = SettableFuture.create();
+     * Get a list of sub-webs for the current site collection
+     *
+     * @return
+     */
+    public ListenableFuture<List<SPWeb>> getSubWebs() {
+        final SettableFuture<List<SPWeb>> result = SettableFuture.create();
 
-		String getListsUrl = getSiteUrl() + "_api/Site/RootWeb";
+        String getListsUrl = getSiteUrl() + "_api/web/?$select=Webs&$expand=Webs";
 
-		ListenableFuture<JSONObject> request = executeRequestJson(getListsUrl, "GET");
+        ListenableFuture<JSONObject> request = executeRequestJson(getListsUrl, "GET");
 
-		Futures.addCallback(request, new FutureCallback<JSONObject>() {
-			@Override
-			public void onFailure(Throwable t) {
-				result.setException(t);
-			}
+        Futures.addCallback(request, new FutureCallback<JSONObject>() {
+            @Override
+            public void onFailure(Throwable t) {
+                result.setException(t);
+            }
 
-			@Override
-			public void onSuccess(JSONObject json) {
-				try {
-					SPWeb rootWeb = SPWeb.createFromJson(json, SPWeb.class);
-					result.set(rootWeb);
-				} catch (JSONException e) {
-					log(e);
-					result.setException(e);
-				}
-			}
-		});
-		return result;
-	}
+            @Override
+            public void onSuccess(JSONObject json) {
+                try {
+                    List<SPWeb> list = SPWeb.listFromJson(json);
+                    result.set(list);
+                } catch (JSONException e) {
+                    log(e);
+                    result.setException(e);
+                }
+            }
+        });
+        return result;
+    }
+
+
+    /**
+     * Get root web for the current site collection
+     *
+     * @return
+     */
+    public ListenableFuture<SPWeb> getRootWeb() {
+        final SettableFuture<SPWeb> result = SettableFuture.create();
+
+        String getListsUrl = getSiteUrl() + "_api/Site/RootWeb";
+
+        ListenableFuture<JSONObject> request = executeRequestJson(getListsUrl, "GET");
+
+        Futures.addCallback(request, new FutureCallback<JSONObject>() {
+            @Override
+            public void onFailure(Throwable t) {
+                result.setException(t);
+            }
+
+            @Override
+            public void onSuccess(JSONObject json) {
+                try {
+                    SPWeb rootWeb = SPWeb.createFromJson(json, SPWeb.class);
+                    result.set(rootWeb);
+                } catch (JSONException e) {
+                    log(e);
+                    result.setException(e);
+                }
+            }
+        });
+        return result;
+    }
 
 
     /**
@@ -501,20 +534,20 @@ public class ListClient extends SharePointClient {
      * @return the user properties
      */
     public ListenableFuture<SPCurrentUser> getCurrentUserProperties() {
-		final SettableFuture<SPCurrentUser> result = SettableFuture.create();
+        final SettableFuture<SPCurrentUser> result = SettableFuture.create();
 
-		String url = getSiteUrl() + "/_api/web/currentuser";
+        String url = getSiteUrl() + "/_api/web/currentuser";
 
-		ListenableFuture<JSONObject> request = executeRequestJson(url, "GET");
+        ListenableFuture<JSONObject> request = executeRequestJson(url, "GET");
 
-		Futures.addCallback(request, new FutureCallback<JSONObject>() {
-			@Override
-			public void onFailure(Throwable t) {
-				result.setException(t);
-			}
+        Futures.addCallback(request, new FutureCallback<JSONObject>() {
+            @Override
+            public void onFailure(Throwable t) {
+                result.setException(t);
+            }
 
-			@Override
-			public void onSuccess(JSONObject json) {
+            @Override
+            public void onSuccess(JSONObject json) {
                 try {
                     SPCurrentUser currentUser = SPCurrentUser.createFromJson(json, SPCurrentUser.class);
                     result.set(currentUser);
@@ -522,50 +555,49 @@ public class ListClient extends SharePointClient {
                     log(e);
                     result.setException(e);
                 }
-			}
-		});
-		return result;
-	}
+            }
+        });
+        return result;
+    }
 
 
- /**
+    /**
      * Gets user properties.
      *
      * @return the user properties
      */
     public ListenableFuture<String> getUserProperties() {
-		final SettableFuture<String> result = SettableFuture.create();
+        final SettableFuture<String> result = SettableFuture.create();
 
-		String url = getSiteUrl() + "/_api/SP.UserProfiles.PeopleManager/GetMyProperties";
+        String url = getSiteUrl() + "/_api/SP.UserProfiles.PeopleManager/GetMyProperties";
 
-		ListenableFuture<JSONObject> request = executeRequestJson(url, "GET");
+        ListenableFuture<JSONObject> request = executeRequestJson(url, "GET");
 
-		Futures.addCallback(request, new FutureCallback<JSONObject>() {
-			@Override
-			public void onFailure(Throwable t) {
-				result.setException(t);
-			}
+        Futures.addCallback(request, new FutureCallback<JSONObject>() {
+            @Override
+            public void onFailure(Throwable t) {
+                result.setException(t);
+            }
 
-			@Override
-			public void onSuccess(JSONObject json) {
-				result.set(json.toString());
-			}
-		});
-		return result;
-	}
+            @Override
+            public void onSuccess(JSONObject json) {
+                result.set(json.toString());
+            }
+        });
+        return result;
+    }
 
-	/**
-	 * Gets the bytes from a given string.
-	 *
-	 * @param s
-	 *            the s
-	 * @return the bytes
-	 */
-	private byte[] getBytes(String s) {
-		try {
-			return s.getBytes(Constants.UTF8_NAME);
-		} catch (UnsupportedEncodingException e) {
-			return s.getBytes();
-		}
-	}
+    /**
+     * Gets the bytes from a given string.
+     *
+     * @param s the s
+     * @return the bytes
+     */
+    private byte[] getBytes(String s) {
+        try {
+            return s.getBytes(Constants.UTF8_NAME);
+        } catch (UnsupportedEncodingException e) {
+            return s.getBytes();
+        }
+    }
 }
