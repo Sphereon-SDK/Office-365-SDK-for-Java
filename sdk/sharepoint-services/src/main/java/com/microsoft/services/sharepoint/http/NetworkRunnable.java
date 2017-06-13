@@ -136,14 +136,12 @@ class NetworkRunnable implements Runnable {
         if ("POST".equals(connection.getRequestMethod())) {
             connection.setDoOutput(true);
 
+            OutputStream stream = connection.getOutputStream();
             if (request.getContent() != null) {
                 byte[] requestContent = request.getContent();
-                OutputStream stream = connection.getOutputStream();
                 stream.write(requestContent, 0, requestContent.length);
-                stream.close();
-            } else {
-                connection.setFixedLengthStreamingMode(0);
             }
+            stream.close();
         }
 
         return connection;
