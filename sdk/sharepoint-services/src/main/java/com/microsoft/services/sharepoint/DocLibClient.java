@@ -927,6 +927,29 @@ public class DocLibClient extends SharePointClient {
     }
 
 
+    public ListenableFuture<Void> checkInFileByUrl(String path, CheckinType checkinType, String comment) {
+        final SettableFuture result = SettableFuture.create();
+        if (isNotEmpty(path)) {
+            String checkinFileUrl = this.getSiteUrl() + String.format("_api/web/GetFileByServerRelativeUrl('%s')/checkin(comment='%s',checkintype=%d)",
+                    urlEncode(path), urlEncode(comment), checkinType.ordinal());
+            ListenableFuture request = this.executeRequestJsonWithDigest(checkinFileUrl, "POST", new HashMap(), null);
+            Futures.addCallback(request, new FutureCallback<JSONObject>() {
+                public void onFailure(Throwable t) {
+                    result.setException(t);
+                }
+
+
+                public void onSuccess(JSONObject json) {
+                    result.set(null);
+                }
+            });
+        } else {
+            throw new IllegalArgumentException("File id cannot be null or empty");
+        }
+        return result;
+    }
+
+
     public ListenableFuture<Void> undoCheckOutFileByListItemId(String listId, String itemId) {
         final SettableFuture result = SettableFuture.create();
         if (isNotEmpty(listId) && isNotEmpty(itemId)) {
