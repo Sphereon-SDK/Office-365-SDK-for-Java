@@ -15,6 +15,7 @@ import com.microsoft.services.sharepoint.http.Response;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -128,6 +129,60 @@ public class SharePointClient extends OfficeClient {
     protected ListenableFuture<JSONObject> executeRequestJsonWithDigest(
             final String url, final String method,
             final Map<String, String> headers, final byte[] payload) {
+
+        final SettableFuture<JSONObject> result = SettableFuture.create();
+        ListenableFuture<String> digestFuture = getFormDigest();
+
+        Futures.addCallback(digestFuture, new FutureCallback<String>() {
+            @Override
+            public void onFailure(Throwable t) {
+                result.setException(t);
+            }
+
+            @Override
+            public void onSuccess(String digest) {
+                Map<String, String> finalHeaders = new HashMap<String, String>();
+
+                if (headers != null) {
+                    for (String key : headers.keySet()) {
+                        finalHeaders.put(key, headers.get(key));
+                    }
+                }
+
+                finalHeaders.put("Content-Type",
+                        "application/json;odata=verbose");
+                finalHeaders.put("X-RequestDigest", digest);
+                ListenableFuture<JSONObject> request = executeRequestJson(url, method, finalHeaders, payload);
+
+                Futures.addCallback(request, new FutureCallback<JSONObject>() {
+                    @Override
+                    public void onFailure(Throwable t) {
+                        result.setException(t);
+                    }
+
+                    @Override
+                    public void onSuccess(JSONObject json) {
+                        result.set(json);
+                    }
+                });
+            }
+        });
+        return result;
+    }
+
+
+   /**
+     * Execute request json with digest.
+     *
+     * @param url     the url
+     * @param method  the method
+     * @param headers the headers
+     * @param payload the payload
+     * @return OfficeFuture<JSONObject>
+     */
+    protected ListenableFuture<JSONObject> executeRequestJsonWithDigest(
+            final String url, final String method,
+            final Map<String, String> headers, final InputStream payload) {
 
         final SettableFuture<JSONObject> result = SettableFuture.create();
         ListenableFuture<String> digestFuture = getFormDigest();

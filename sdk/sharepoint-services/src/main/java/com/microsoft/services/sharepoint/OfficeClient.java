@@ -1,17 +1,5 @@
 package com.microsoft.services.sharepoint;
 
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.io.StringWriter;
-import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-
-import org.json.JSONException;
-import org.json.JSONObject;
-
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -19,6 +7,14 @@ import com.google.common.util.concurrent.SettableFuture;
 import com.microsoft.services.sharepoint.http.HttpConnection;
 import com.microsoft.services.sharepoint.http.Request;
 import com.microsoft.services.sharepoint.http.Response;
+import org.apache.commons.io.IOUtils;
+import org.json.JSONObject;
+
+import java.io.*;
+import java.net.URLEncoder;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 /**
  * The type Office client.
@@ -152,8 +148,8 @@ public class OfficeClient {
      * @param method the method
      * @return the listenable future
      */
-    protected ListenableFuture<byte[]> executeRequest(String url, String method) {
-        return executeRequest(url, method, null, null);
+    protected ListenableFuture<InputStream> executeRequest(String url, String method) {
+        return executeRequest(url, method, null, (byte[])null);
     }
 
 
@@ -166,8 +162,8 @@ public class OfficeClient {
      * @param payload the payload
      * @return the listenable future
      */
-    protected ListenableFuture<byte[]> executeRequest(String url, String method, Map<String, String> headers,
-                                                      byte[] payload) {
+    protected SettableFuture<InputStream> executeRequest(String url, String method, Map<String, String> headers,
+                                                         byte[] payload) {
         HttpConnection connection = Platform.createHttpConnection();
 
         Request request = new Request(method);
@@ -188,7 +184,7 @@ public class OfficeClient {
         log("Generate request for " + url, LogLevel.Verbose);
         request.log(getLogger());
 
-        final SettableFuture<byte[]> result = SettableFuture.create();
+        final SettableFuture<InputStream> result = SettableFuture.create();
         final ListenableFuture<Response> future = connection.execute(request);
 
         Futures.addCallback(future, new FutureCallback<Response>() {
@@ -203,8 +199,70 @@ public class OfficeClient {
                 try {
                     int statusCode = response.getStatus();
                     if (isValidStatus(statusCode)) {
-                        byte[] responseContentBytes = response.readAllBytes();
-                        result.set(responseContentBytes);
+                        InputStream responseStream = response.getInputStream();
+                        result.set(responseStream);
+                    } else {
+                        result.setException(new Exception("Invalid status code " + statusCode + ": "
+                                + response.readToEnd()));
+                    }
+                } catch (IOException e) {
+                    log(e);
+                    result.setException(e);
+                }
+            }
+        });
+        return result;
+    }
+
+
+    /**
+     * Execute request.
+     *
+     * @param url     the url
+     * @param method  the method
+     * @param headers the headers
+     * @param payload the payload
+     * @return the listenable future
+     */
+    protected SettableFuture<InputStream> executeRequest(String url, String method, Map<String, String> headers,
+                                                         InputStream payload) {
+        HttpConnection connection = Platform.createHttpConnection();
+
+        Request request = new Request(method);
+
+        if (headers != null) {
+            for (String key : headers.keySet()) {
+                Object value = headers.get(key);
+                if (value != null) {
+                    request.addHeader(key, "" + value);
+                }
+            }
+        }
+
+        request.setUrl(url);
+        request.setContentStream(payload);
+        prepareRequest(request);
+
+        log("Generate request for " + url, LogLevel.Verbose);
+        request.log(getLogger());
+
+        final SettableFuture<InputStream> result = SettableFuture.create();
+        final ListenableFuture<Response> future = connection.execute(request);
+
+        Futures.addCallback(future, new FutureCallback<Response>() {
+            @Override
+            public void onFailure(Throwable t) {
+                result.setException(t);
+            }
+
+
+            @Override
+            public void onSuccess(Response response) {
+                try {
+                    int statusCode = response.getStatus();
+                    if (isValidStatus(statusCode)) {
+                        InputStream responseStream = response.getInputStream();
+                        result.set(responseStream);
                     } else {
                         result.setException(new Exception("Invalid status code " + statusCode + ": "
                                 + response.readToEnd()));
@@ -227,7 +285,7 @@ public class OfficeClient {
      * @return the listenable future
      */
     protected ListenableFuture<JSONObject> executeRequestJson(String url, String method) {
-        return executeRequestJson(url, method, null, null);
+        return executeRequestJson(url, method, null, (byte[])null);
     }
 
 
@@ -244,9 +302,9 @@ public class OfficeClient {
                                                               byte[] payload) {
 
         final SettableFuture<JSONObject> result = SettableFuture.create();
-        final ListenableFuture<byte[]> request = executeRequest(url, method, headers, payload);
+        final SettableFuture<InputStream> request = executeRequest(url, method, headers, payload);
 
-        Futures.addCallback(request, new FutureCallback<byte[]>() {
+        Futures.addCallback(request, new FutureCallback<InputStream>() {
             @Override
             public void onFailure(Throwable t) {
                 result.setException(t);
@@ -254,10 +312,52 @@ public class OfficeClient {
 
 
             @Override
-            public void onSuccess(byte[] b) {
+            public void onSuccess(InputStream inputStream) {
                 String string;
                 try {
-                    string = new String(b, Constants.UTF8_NAME);
+                    string = IOUtils.toString(inputStream, Constants.UTF8_NAME);
+                    if (string.length() == 0) {
+                        result.set(null);
+                    } else {
+                        JSONObject json = new JSONObject(string);
+                        result.set(json);
+                    }
+                } catch (Throwable t) {
+                    t.printStackTrace();
+                    result.setException(t);
+                }
+            }
+        });
+        return result;
+    }
+
+   /**
+     * Execute request json.
+     *
+     * @param url     the url
+     * @param method  the method
+     * @param headers the headers
+     * @param payload the payload
+     * @return the listenable future
+     */
+    protected ListenableFuture<JSONObject> executeRequestJson(String url, String method, Map<String, String> headers,
+                                                              InputStream payload) {
+
+        final SettableFuture<JSONObject> result = SettableFuture.create();
+        final SettableFuture<InputStream> request = executeRequest(url, method, headers, payload);
+
+        Futures.addCallback(request, new FutureCallback<InputStream>() {
+            @Override
+            public void onFailure(Throwable t) {
+                result.setException(t);
+            }
+
+
+            @Override
+            public void onSuccess(InputStream inputStream) {
+                String string;
+                try {
+                    string = IOUtils.toString(inputStream, Constants.UTF8_NAME);
                     if (string.length() == 0) {
                         result.set(null);
                     } else {

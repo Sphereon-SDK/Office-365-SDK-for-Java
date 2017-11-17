@@ -6,6 +6,7 @@
 package com.microsoft.services.sharepoint.http;
 
 import com.google.common.util.concurrent.SettableFuture;
+import org.apache.commons.io.IOUtils;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -136,15 +137,15 @@ class NetworkRunnable implements Runnable {
         if ("POST".equals(connection.getRequestMethod())) {
             connection.setDoOutput(true);
 
-            OutputStream stream = connection.getOutputStream();
-            if (request.getContent() != null) {
-                byte[] requestContent = request.getContent();
-                stream.write(requestContent, 0, requestContent.length);
+            try (OutputStream stream = connection.getOutputStream()) {
+                if (request.getContentStream() != null) {
+                    IOUtils.copy(request.getContentStream(), stream);
+                } else if (request.getContent() != null) {
+                    byte[] requestContent = request.getContent();
+                    stream.write(requestContent, 0, requestContent.length);
+                }
             }
-            stream.close();
         }
-
         return connection;
     }
-
 }

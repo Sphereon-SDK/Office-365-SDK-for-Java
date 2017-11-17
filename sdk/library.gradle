@@ -21,6 +21,7 @@ dependencies {
     compile 'com.google.guava:guava:18.0'
     compile 'com.microsoft.azure:adal4j:1.0.0'
     compile 'org.json:json:20090211'
+    compile group: 'commons-io', name: 'commons-io', version: '2.6'
     compile 'com.microsoft.services.orc:orc-java:1.0.0'
 }
 

@@ -401,7 +401,7 @@ public class ListClient extends SharePointClient {
             headers.put("X-HTTP-Method", "DELETE");
             headers.put("If-Match", "*");
 
-            ListenableFuture<JSONObject> request = executeRequestJsonWithDigest(getListUrl, "POST", headers, null);
+            ListenableFuture<JSONObject> request = executeRequestJsonWithDigest(getListUrl, "POST", headers, (byte[])null);
 
             Futures.addCallback(request, new FutureCallback<JSONObject>() {
                 @Override
