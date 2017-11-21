@@ -132,10 +132,10 @@ public class DocLibClient extends SharePointClient {
 
         String getFilesUrl;
         if (library != null) {
-            getFilesUrl = getSiteUrl() + "_api/web/lists/GetByTitle('%s')/files(%s)";
+            getFilesUrl = getSiteUrl() + "_api/web/lists/GetByTitle('%s')/files('%s')";
             getFilesUrl = String.format(getFilesUrl, urlEncode(library), getUrlPath(path));
         } else {
-            getFilesUrl = getSiteUrl() + String.format("_api/files(%s)", getUrlPath(path));
+            getFilesUrl = getSiteUrl() + String.format("_api/files('%s')", getUrlPath(path));
         }
 
         return getFile(files, getFilesUrl);
@@ -730,7 +730,7 @@ public class DocLibClient extends SharePointClient {
 
     public ListenableFuture<FileSystemItem> getFileSystemItemByIdSp2016(String uniqueId) {
         final SettableFuture files = SettableFuture.create();
-        String getFilesUrl = this.getSiteUrl() + String.format("_api/web/GetFileById(%s)", new Object[]{this.getUrlPath(uniqueId)});
+        String getFilesUrl = this.getSiteUrl() + String.format("_api/web/GetFileById('%s')", new Object[]{this.getUrlPath(uniqueId)});
         return getFile(files, getFilesUrl);
     }
 
@@ -772,7 +772,7 @@ public class DocLibClient extends SharePointClient {
 
     public ListenableFuture<InputStream> getFileByIdSp2016(String uniqueId) {
         if (isNotEmpty(uniqueId)) {
-            String getFileUrl = this.getSiteUrl() + String.format("_api/web/GetFileById(%s)/$value", new Object[]{this.getUrlPath(uniqueId)});
+            String getFileUrl = this.getSiteUrl() + String.format("_api/web/GetFileById('%s')/$value", new Object[]{this.getUrlPath(uniqueId)});
             return this.executeRequest(getFileUrl, "GET");
         } else {
             throw new IllegalArgumentException("Path cannot be null or empty");
@@ -783,7 +783,7 @@ public class DocLibClient extends SharePointClient {
     public ListenableFuture<Void> checkOutFileByIdSp2016(String uniqueId) {
         final SettableFuture result = SettableFuture.create();
         if (isNotEmpty(uniqueId)) {
-            String checkoutFileUrl = this.getSiteUrl() + String.format("_api/web/GetFileById(%s)/checkout()", this.getUrlPath(uniqueId));
+            String checkoutFileUrl = this.getSiteUrl() + String.format("_api/web/GetFileById('%s')/checkout()", this.getUrlPath(uniqueId));
             ListenableFuture request = this.executeRequestJsonWithDigest(checkoutFileUrl, "POST", new HashMap(), (byte[]) null);
             Futures.addCallback(request, new FutureCallback<JSONObject>() {
                 public void onFailure(Throwable t) {
@@ -850,9 +850,9 @@ public class DocLibClient extends SharePointClient {
     public ListenableFuture<Void> undoCheckOutFileByIdSp2016(String uniqueId) {
         final SettableFuture result = SettableFuture.create();
         if (isNotEmpty(uniqueId)) {
-            String checkoutFileUrl = this.getSiteUrl() + String.format("_api/web/GetFileById(%s)/undocheckout",
+            String undoCheckoutFileUrl = this.getSiteUrl() + String.format("_api/web/GetFileById(%s)/undocheckout",
                     this.getUrlPath(uniqueId));
-            ListenableFuture request = this.executeRequestJsonWithDigest(checkoutFileUrl, "POST", new HashMap(), (byte[]) null);
+            ListenableFuture request = this.executeRequestJsonWithDigest(undoCheckoutFileUrl, "POST", new HashMap(), (byte[]) null);
             Futures.addCallback(request, new FutureCallback<JSONObject>() {
                 public void onFailure(Throwable t) {
                     result.setException(t);
@@ -876,9 +876,9 @@ public class DocLibClient extends SharePointClient {
         }
 
         final SettableFuture result = SettableFuture.create();
-        String checkoutFileUrl = this.getSiteUrl() + String.format("_api/web/GetFileByServerRelativeUrl('%s')/undocheckout",
+        String undoCheckoutFileUrl = this.getSiteUrl() + String.format("_api/web/GetFileByServerRelativeUrl('%s')/undocheckout",
                 this.getUrlPath(relativeUrl));
-        ListenableFuture request = this.executeRequestJsonWithDigest(checkoutFileUrl, "POST", new HashMap(), (byte[]) null);
+        ListenableFuture request = this.executeRequestJsonWithDigest(undoCheckoutFileUrl, "POST", new HashMap(), (byte[]) null);
         Futures.addCallback(request, new FutureCallback<JSONObject>() {
             public void onFailure(Throwable t) {
                 result.setException(t);
@@ -1037,7 +1037,7 @@ public class DocLibClient extends SharePointClient {
         if (path.length() == 0) {
             urlPath = "";
         } else {
-            urlPath = String.format("'%s'", urlEncode(path));
+            urlPath = String.format("%s", urlEncode(path));
         }
         return urlPath;
     }
