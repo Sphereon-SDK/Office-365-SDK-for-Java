@@ -18,11 +18,14 @@ repositories {
 
 dependencies {
     compile 'com.google.code.gson:gson:2.3'
-    compile 'com.google.guava:guava:18.0'
+    compile 'com.google.guava:guava:23.4-jre'
     compile 'com.microsoft.azure:adal4j:1.0.0'
     compile 'org.json:json:20090211'
     compile group: 'commons-io', name: 'commons-io', version: '2.6'
-    compile 'com.microsoft.services.orc:orc-java:1.0.0'
+
+    compile ('com.microsoft.services.orc:orc-java:1.0.0') {
+        exclude group: 'com.google.guava', module: 'guava'
+    }
 }
 
 uploadArchives {
